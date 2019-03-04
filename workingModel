@@ -1,0 +1,119 @@
+// This is a simple example to test communication with the motors
+// It should make all motor led blink once per second
+// Make sure to select the correct type of interface (hardware or serial, with or without tristate buffer)
+// and baudrate depending of your configuration.
+// Default baudrate is 1000000 (only hardware serial is capable of that speed)
+
+#include <DynamixelMotor.h>
+
+// direction pin, if you use tristate buffer
+#define DIR_PIN 2
+
+// software serial pins, if you use software serial
+#define SOFT_RX_PIN 3
+#define SOFT_TX_PIN 4
+
+// Use this for hardware serial without tristate buffer
+//HardwareDynamixelInterface interface(Serial);
+
+// Use this for hardware serial with tristate buffer
+//HardwareDynamixelInterface interface(Serial, DIR_PIN);
+
+// Use this for software serial without tristate buffer
+SoftwareDynamixelInterface interface(SOFT_RX_PIN, SOFT_TX_PIN);
+
+// Use this for software serial with tristate buffer
+//SoftwareDynamixelInterface interface(SOFT_RX_PIN, SOFT_TX_PIN, DIR_PIN);
+int16_t speed=100;
+const long unsigned int baudrate = 57600;
+
+//added//
+const int ledPin = 13; // pin the LED is connected to
+int   blinkRate=0;     // blink rate stored in this variable
+//added//
+int value, tiltGoal = 512, panGoal = 512;
+// Use broadcast address to affect all connected motors
+//DynamixelDevice broadcast_device(interface, BROADCAST_ID);
+
+uint8_t led_state=true;
+DynamixelMotor tiltMotor(interface, 001);//BROADCAST_ID);
+DynamixelMotor panMotor(interface, 002);
+
+void setup() {
+  
+//added//
+   Serial.begin(57600);//9600); // Initialize serial port to send and receive at 9600 baud
+  pinMode(ledPin, OUTPUT); // set this pin as output
+//added//
+   digitalWrite(ledPin,HIGH);
+   delay(100);
+    digitalWrite(ledPin,LOW);
+  interface.begin(57600);
+  delay(100);
+   digitalWrite(ledPin,HIGH);
+   delay(100);
+    digitalWrite(ledPin,LOW);
+    tiltMotor.enableTorque();  
+    tiltMotor.jointMode(204, 820);
+    tiltMotor.speed(512);
+    panMotor.enableTorque();
+    panMotor.jointMode(204, 820);
+    panMotor.speed(512);
+    
+    delay(100);
+    tiltMotor.goalPosition(512);
+    panMotor.goalPosition(512);
+}
+
+
+void loop() {
+
+    if( Serial.available())
+  {
+    char ch = Serial.read();
+    if( isDigit(ch) )// is this an ascii digit between 0 and 9?
+    {
+       value = (value * 10) + (ch - '0'); // yes, accumulate the value
+    }
+    else if (ch == 80)  // is the character the newline character?
+    {
+       panGoal = value;  // set blinkrate to the accumulated value
+       value = 0;
+       Serial.println(panGoal);
+    }
+    else if (ch == 84)
+    {
+        tiltGoal = value;
+        value = 0;
+        Serial.println(tiltGoal);
+    }
+ //   else (if ch == 90 )
+//    {
+ //     value = 0; // reset val to 0 ready for the next sequence of digits       
+ //   }
+  }
+/*       if ( > 820 )
+       {
+        tiltGoal = 820;
+        panGoal = 820;
+       }
+       else if (blinkRate < 204 )
+       {
+           tiltGoal = 204;
+           panGoal = 204;
+       }
+       else
+       {
+           tiltGoal = blinkRate;
+          panGoal = blinkRate;
+       }
+ */ 
+  blink();
+  
+}
+// blink the LED with the on and off times determined by blinkRate
+void blink()
+{
+  tiltMotor.goalPosition(tiltGoal);
+  panMotor.goalPosition(panGoal);
+}
